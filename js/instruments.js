@@ -1,7 +1,8 @@
 import { state } from './state.js';
 import { $, escapeAttr, escapeHtml, formData, today } from './utils.js';
 import { closeModal, field, input, openModal, select, toast } from './ui.js';
-import { normalizeCondition, saveWorkbook } from './supabase.js';
+import { normalizeCondition } from './utils.js';
+import { saveWorkbook } from './supabase.js';
 import { addHistoryEntry, closeHistoryEntry } from './history.js';
 
 export function nextId() {
