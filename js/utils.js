@@ -12,3 +12,12 @@ export function escapeHtml(value = '') {
 }
 export const escapeAttr = escapeHtml;
 export const formData = (form) => Object.fromEntries(new FormData(form).entries());
+
+// Новая функция
+export function normalizeCondition(value) {
+  const v = String(value || '').toLowerCase();
+  if (['busy','занят'].includes(v)) return 'busy';
+  if (['retired','broken','списан'].includes(v)) return 'retired';
+  if (['booked','забронирован'].includes(v)) return 'booked';
+  return 'free';
+}
