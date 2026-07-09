@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Учет приборов</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="shell">
+    <!-- Авторизация -->
+    <section id="authView" class="auth-view">
+      <form id="loginForm" class="panel auth-panel">
+        <h1>Учет приборов</h1>
+        <p>Войдите в систему</p>
+        <label>Логин<input id="loginUsername" autocomplete="username" required></label>
+        <label>Пароль<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">Войти</button>
+      </form>
+    </section>
+
+    <!-- Основное приложение -->
+    <section id="appView" class="hidden">
+      <header class="topbar">
+        <div>
+          <h1>Учет приборов</h1>
+          <p id="syncStatus">Загрузка...</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="currentUserBadge" class="badge muted"></span>
+          <button id="themeToggle" class="secondary" type="button">Тёмная</button>
+          <button id="usersButton" class="secondary admin-only" type="button">Пользователи</button>
+          <button id="profileButton" class="secondary" type="button">Профиль</button>
+          <button id="logoutButton" class="danger" type="button">Выйти</button>
+        </div>
+      </header>
+
+      <!-- Список -->
+      <section id="listScreen">
+        <div class="toolbar panel">
+          <input id="searchInput" class="search" placeholder="Поиск по названию, серийному номеру или модели">
+          <div class="filter-group">
+            <span class="filter-label">Поверка</span>
+            <select id="verificationFilter">
+              <option value="all">Все</option>
+              <option value="valid">Поверен</option>
+              <option value="expired">Не поверен</option>
+              <option value="none">Без поверки</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Состояние</span>
+            <select id="conditionFilter">
+              <option value="all">Все</option>
+              <option value="free">Свободен</option>
+              <option value="busy">Занят</option>
+              <option value="booked">Забронирован</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Пользователь</span>
+            <select id="userFilter">
+              <option value="all">Все</option>
+            </select>
+          </div>
+          <button id="calendarButton" class="secondary admin-only" type="button">Календарь</button>
+          <button id="retiredButton" class="secondary admin-only" type="button">Списанные</button>
+          <button id="addInstrumentButton" class="primary admin-only" type="button">Добавить</button>
+          <button id="massToggleBtn" class="secondary admin-only" type="button">Выбрать</button>
+          <button id="massRetireBtn" class="danger admin-only" type="button" style="display:none;">Списать выбранные</button>
+          <button id="massDeleteBtn" class="danger admin-only" type="button" style="display:none;">Удалить выбранные</button>
+        </div>
+        <div id="instrumentList" class="list"></div>
+      </section>
+
+      <!-- Карточка -->
+      <section id="cardScreen" class="hidden"></section>
+    </section>
+  </main>
+
+  <dialog id="modal"></dialog>
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Внешние библиотеки -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
