@@ -360,7 +360,7 @@ export async function retireInstrument(item, goList) {
     taken_extra: '',
     taken_date: '',
     retired_date: today(),
-    photo: item.photo || ''
+    photo: item.photo || '' // если у вас есть поле photo
   };
   state.retired.push(retiredItem);
   state.instruments = state.instruments.filter((row) => row !== item);
