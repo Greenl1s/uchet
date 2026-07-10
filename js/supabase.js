@@ -75,12 +75,9 @@ export async function saveWorkbook(message = 'Сохранено') {
   try {
     const { instruments, history, users, retired } = state;
     
-    // Для instruments, users, retired используем upsert по primary key
     await upsertData('instruments', instruments, 'id');
     await upsertData('users', users, 'username');
     await upsertData('retired', retired, 'id');
-    
-    // Для history – проще перезаписать всю таблицу (очистить и вставить заново)
     await replaceTable('history', history);
     
     console.log('[Supabase] Сохранение завершено успешно');
@@ -132,11 +129,10 @@ async function upsertData(table, records, primaryKey) {
 async function replaceTable(table, records) {
   console.log(`[Supabase] Замена таблицы ${table} (${records.length} записей)`);
   try {
-    // Удаляем все записи
-    await supabaseFetch(table, { method: 'DELETE' });
-    // Вставляем новые, если есть
+    // Используем условие id=gte.0, чтобы удалить все записи (так как id SERIAL всегда >=1)
+    await supabaseFetch(`${table}?id=gte.0`, { method: 'DELETE' });
     if (records.length > 0) {
-      // Убираем поле id, чтобы БД генерировала новое
+      // Убираем поле id, чтобы база генерировала новые значения
       const recordsToInsert = records.map(({ id, ...rest }) => rest);
       await supabaseFetch(table, {
         method: 'POST',
