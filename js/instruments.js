@@ -188,6 +188,13 @@ export function renderCard(id, goList) {
 
   document.getElementById('cardScreen').innerHTML =
     `<article class="panel card">
+    let photoHtml = '';
+if (item.photo) {
+  photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
+    <img src="${escapeAttr(item.photo)}" alt="Фото прибора"
+         style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
+  </div>`;
+}
       <h1>${escapeHtml(item.name || 'Без названия')}</h1>
       <div class="badges">
         <span class="badge ${verificationBadge(item.valid_until)}">${verificationText(item.valid_until)}</span>
@@ -206,13 +213,11 @@ export function renderCard(id, goList) {
       ${extraFields}
       ${actionsHtml}
     </article>`;
-   let photoHtml = '';
-if (item.photo) {
-  photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
-    <img src="${escapeAttr(item.photo)}" alt="Фото прибора"
-         style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
-  </div>`;
-}
+document.getElementById('cardScreen').innerHTML =
+  `<article class="panel card">
+    ${photoHtml}
+    <h1>${escapeHtml(item.name || 'Без названия')}</h1>
+    ...
   bindCardActions(item, goList, isRetiredFlag);
 }
 
@@ -239,7 +244,7 @@ function bindCardActions(item, goList, isRetired) {
 
 export function showInstrumentForm(item = null) {
   const isEdit = Boolean(item);
-  const v = item || { id: nextId(), condition: 'free', type: 'Поверка', taken_extra: '', comment: '' };
+  const v = item || { id: nextId(), condition: 'free', type: 'Поверка', taken_extra: '', comment: '', photo: '' };
   openModal(isEdit ? 'Редактировать прибор' : 'Добавить прибор',
     `<form id="instrumentForm" class="form-grid">
       ${input('id', 'ID', v.id, 'number', true)}
@@ -250,16 +255,58 @@ export function showInstrumentForm(item = null) {
       ${input('verification_date', 'Дата поверки/калибровки', v.verification_date, 'date')}
       ${input('valid_until', 'Действительно до', v.valid_until, 'date')}
       ${input('document_url', 'Ссылка на документ', v.document_url, 'url')}
-      ${input('photo', 'Ссылка на фото прибора (URL)', v.photo || '', 'text')}
+      <label>Фото прибора
+        <input type="file" name="photo" accept="image/*">
+        ${isEdit && v.photo ? `<div style="margin-top:4px;font-size:12px;color:var(--muted);">Фото загружено (${Math.round(v.photo.length / 1024)} КБ)</div>` : ''}
+      </label>
       ${input('comment', 'Комментарий', v.comment || '', 'text')}
       ${select('condition', 'Состояние', v.condition, [['free', 'Свободен'], ['busy', 'Занят'], ['booked', 'Забронирован'], ['retired', 'Списан']])}
       ${isEdit ? input('taken_extra', 'Доп. данные при выдаче', v.taken_extra || '', 'text') : ''}
-      <div class="modal-actions"><button class="primary" type="submit">Сохранить</button></div>
-    </form>`);
+      <div class="modal-actions">
+        ${isEdit && v.photo ? `<button type="button" class="danger" id="removePhotoBtn">Удалить фото</button>` : ''}
+        <button class="primary" type="submit">Сохранить</button>
+      </div>
+    </form>`
+  );
+
+  // Удаление фото
+  const removeBtn = document.getElementById('removePhotoBtn');
+  if (removeBtn) {
+    removeBtn.onclick = () => {
+      if (confirm('Удалить фото?')) {
+        item.photo = '';
+        closeModal();
+        showInstrumentForm(item);
+      }
+    };
+  }
+
   document.getElementById('instrumentForm').onsubmit = async (event) => {
     event.preventDefault();
-    const data = formData(event.target);
+    const form = event.target;
+    const formDataObj = new FormData(form);
+    const data = Object.fromEntries(formDataObj.entries());
     data.condition = normalizeCondition(data.condition);
+
+    // Обрабатываем загрузку фото
+    const fileInput = form.querySelector('input[name="photo"]');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      if (file.size > 2 * 1024 * 1024) {
+        toast('Файл слишком большой (макс. 2 МБ)', true);
+        return;
+      }
+      const reader = new FileReader();
+      data.photo = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    } else if (isEdit) {
+      data.photo = item.photo || '';
+    } else {
+      data.photo = '';
+    }
+
     if (!isEdit && state.instruments.some((row) => String(row.id) === String(data.id))) return toast('Такой ID уже есть', true);
     if (isEdit) Object.assign(item, data);
     else state.instruments.push(data);
