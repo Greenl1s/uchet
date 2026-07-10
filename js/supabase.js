@@ -11,16 +11,43 @@ async function supabaseFetch(path, options = {}) {
     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json'
   };
-  const response = await fetch(url, {
-    ...options,
-    headers: { ...headers, ...options.headers }
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Supabase error (${response.status}): ${text}`);
+  console.log(`[Supabase] ${options.method || 'GET'} ${url}`);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...options.headers }
+    });
+    console.log(`[Supabase] -> статус ${response.status}`);
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('[Supabase] Тело ошибки:', text);
+      throw new Error(`Supabase error (${response.status}): ${text}`);
+    }
+
+    if (response.status === 204 || response.status === 205) {
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        return await response.json();
+      } catch (parseError) {
+        const text = await response.text();
+        console.warn('[Supabase] Невалидный JSON, возвращаем текст:', text);
+        return text;
+      }
+    } else {
+      const text = await response.text();
+      console.warn('[Supabase] Ответ не JSON:', text);
+      return text;
+    }
+  } catch (fetchError) {
+    console.error('[Supabase] Ошибка сети:', fetchError);
+    throw new Error(`Ошибка сети: ${fetchError.message}`);
   }
-  if (response.status === 204) return null;
-  return response.json();
 }
 
 export async function loadWorkbook() {
@@ -32,7 +59,12 @@ export async function loadWorkbook() {
       supabaseFetch('users?select=*'),
       supabaseFetch('retired?select=*')
     ]);
-    return { instruments, history, users, retired };
+    return {
+      instruments: Array.isArray(instruments) ? instruments : [],
+      history: Array.isArray(history) ? history : [],
+      users: Array.isArray(users) ? users : [],
+      retired: Array.isArray(retired) ? retired : []
+    };
   } catch (err) {
     throw new Error(`Ошибка загрузки данных из Supabase: ${err.message}`);
   }
@@ -42,30 +74,80 @@ export async function saveWorkbook(message = 'Сохранено') {
   console.log('[Supabase] Сохранение данных...');
   try {
     const { instruments, history, users, retired } = state;
+    
+    // Для instruments, users, retired используем upsert по primary key
     await upsertData('instruments', instruments, 'id');
-    await upsertData('history', history, 'id');
     await upsertData('users', users, 'username');
     await upsertData('retired', retired, 'id');
+    
+    // Для history – проще перезаписать всю таблицу (очистить и вставить заново)
+    await replaceTable('history', history);
+    
+    console.log('[Supabase] Сохранение завершено успешно');
     return message;
   } catch (err) {
+    console.error('[Supabase] Ошибка сохранения:', err);
     throw new Error(`Ошибка сохранения данных: ${err.message}`);
   }
 }
 
 async function upsertData(table, records, primaryKey) {
-  if (!records || records.length === 0) return;
+  if (!records || records.length === 0) {
+    console.log(`[Supabase] ${table}: нет записей для сохранения`);
+    return;
+  }
+  console.log(`[Supabase] ${table}: сохранение ${records.length} записей`);
+
   for (const record of records) {
-    const existing = await supabaseFetch(`${table}?${primaryKey}=eq.${record[primaryKey]}`);
-    if (existing && existing.length > 0) {
-      await supabaseFetch(`${table}?${primaryKey}=eq.${record[primaryKey]}`, {
-        method: 'PATCH',
-        body: JSON.stringify(record)
-      });
-    } else {
+    if (!record[primaryKey]) {
+      console.warn(`[Supabase] Пропускаем запись без ${primaryKey}:`, record);
+      continue;
+    }
+
+    try {
+      const existing = await supabaseFetch(
+        `${table}?${primaryKey}=eq.${encodeURIComponent(record[primaryKey])}`
+      );
+
+      if (existing && Array.isArray(existing) && existing.length > 0) {
+        // Обновляем
+        console.log(`[Supabase] Обновление ${table} ${primaryKey}=${record[primaryKey]}`);
+        await supabaseFetch(`${table}?${primaryKey}=eq.${encodeURIComponent(record[primaryKey])}`, {
+          method: 'PATCH',
+          body: JSON.stringify(record)
+        });
+      } else {
+        // Вставляем
+        console.log(`[Supabase] Вставка новой записи в ${table}`);
+        await supabaseFetch(table, {
+          method: 'POST',
+          body: JSON.stringify(record)
+        });
+      }
+    } catch (err) {
+      console.error(`[Supabase] Ошибка при обработке ${table} ${record[primaryKey]}:`, err);
+      throw err;
+    }
+  }
+}
+
+async function replaceTable(table, records) {
+  console.log(`[Supabase] Замена таблицы ${table} (${records.length} записей)`);
+  try {
+    // Удаляем все записи
+    await supabaseFetch(table, { method: 'DELETE' });
+    // Вставляем новые, если есть
+    if (records.length > 0) {
+      // Для каждого record убираем id (если он есть), чтобы БД сгенерировала новый
+      const recordsToInsert = records.map(({ id, ...rest }) => rest); // убираем id
+      // Отправляем сразу все записи одним запросом POST с массивом
       await supabaseFetch(table, {
         method: 'POST',
-        body: JSON.stringify(record)
+        body: JSON.stringify(recordsToInsert)
       });
     }
+  } catch (err) {
+    console.error(`[Supabase] Ошибка замены таблицы ${table}:`, err);
+    throw err;
   }
 }
