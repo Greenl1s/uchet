@@ -338,34 +338,18 @@ function showTakeForm(item) {
   };
 }
 
-export async function retireInstrument(item, goList) {
-  if (!confirm('Списать прибор?')) return;
+async function returnInstrument(item) {
+  item.condition = 'free';
   closeHistoryEntry(item, state.currentUser.username);
-  let newId = String(item.id);
-  if (!newId.startsWith('0')) {
-    newId = '0' + newId;
-  }
-  const retiredItem = {
-    id: newId,
-    name: item.name,
-    serial_number: item.serial_number,
-    model: item.model,
-    type: item.type,
-    verification_date: item.verification_date,
-    valid_until: item.valid_until,
-    document_url: item.document_url,
-    condition: 'retired',
-    taken_by: '',
-    taken_where: '',
-    taken_extra: '',
-    taken_date: '',
-    retired_date: today(),
-    photo: item.photo || '' // если у вас есть поле photo
-  };
-  state.retired.push(retiredItem);
-  state.instruments = state.instruments.filter((row) => row !== item);
-  await saveWorkbook('Прибор списан');
-  if (goList) goList();
+  item.taken_by = '';
+  item.taken_where = '';
+  item.taken_extra = '';
+  item.taken_date = '';
+  item.booked_by = '';
+  item.booked_date = '';
+  item.booked_extra = '';
+  await saveWorkbook('Прибор возвращен');
+  window.dispatchEvent(new Event('app:refresh-route'));
 }
 
 function showTransferForm(item) {
@@ -434,7 +418,7 @@ async function confirmBooking(item) {
   item.booked_extra = '';
   addHistoryEntry(item);
   await saveWorkbook('Бронирование подтверждено, прибор выдан');
-  window.dispatchEvent(new Event('app:refresh-route'));
+  window.dispatchEvent(new Event('app:refresh-route')); // исправлено имя события
 }
 
 export async function retireInstrument(item, goList) {
@@ -445,13 +429,21 @@ export async function retireInstrument(item, goList) {
     newId = '0' + newId;
   }
   const retiredItem = {
-    ...item,
     id: newId,
+    name: item.name,
+    serial_number: item.serial_number,
+    model: item.model,
+    type: item.type,
+    verification_date: item.verification_date,
+    valid_until: item.valid_until,
+    document_url: item.document_url,
     condition: 'retired',
+    taken_by: '',
+    taken_where: '',
+    taken_extra: '',
+    taken_date: '',
     retired_date: today(),
-    booked_by: '',
-    booked_date: '',
-    booked_extra: ''
+    photo: item.photo || ''
   };
   state.retired.push(retiredItem);
   state.instruments = state.instruments.filter((row) => row !== item);
