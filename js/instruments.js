@@ -100,13 +100,6 @@ export function renderRetiredRow(item) {
 }
 
 export function renderCard(id, goList) {
-  let photoHtml = '';
-if (item.photo) {
-  photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
-    <img src="${escapeAttr(item.photo)}" alt="Фото прибора"
-         style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
-  </div>`;
-}
   let item = state.instruments.find((i) => String(i.id) === String(id));
   let isRetired = false;
   if (!item) {
@@ -213,6 +206,13 @@ if (item.photo) {
       ${extraFields}
       ${actionsHtml}
     </article>`;
+   let photoHtml = '';
+if (item.photo) {
+  photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
+    <img src="${escapeAttr(item.photo)}" alt="Фото прибора"
+         style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
+  </div>`;
+}
   bindCardActions(item, goList, isRetiredFlag);
 }
 
