@@ -121,7 +121,7 @@ export function renderCard(id, goList) {
   const isRetiredFlag = isRetired || item.condition === 'retired';
   const isFree = !isTaken && !isBooked && !isRetiredFlag;
 
-  // ---------- БЛОК ФОТО (ВЫЧИСЛЯЕМ ЗАРАНЕЕ) ----------
+  // ---------- ФОТО ----------
   let photoHtml = '';
   if (item.photo) {
     photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
@@ -181,7 +181,7 @@ export function renderCard(id, goList) {
     actionsHtml += `<div class="actions" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; justify-content:flex-end;">${backButton}</div>`;
   }
 
-  // ---------- ДОП. ПОЛЯ ----------
+  // ---------- ДОПОЛНИТЕЛЬНЫЕ ПОЛЯ ----------
   let extraFields = '';
   if (isBooked) {
     extraFields = `<div class="issued" style="background:#fee2e2;border-color:#fda29b;">
@@ -224,31 +224,6 @@ export function renderCard(id, goList) {
 
   bindCardActions(item, goList, isRetiredFlag);
 }
-      <h1>${escapeHtml(item.name || 'Без названия')}</h1>
-      <div class="badges">
-        <span class="badge ${verificationBadge(item.valid_until)}">${verificationText(item.valid_until)}</span>
-        <span class="badge ${conditionBadge(item.condition)}">${conditionText(item.condition)}</span>
-      </div>
-      <div class="card-grid">
-        ${field('ID', item.id)}
-        ${field('Серийный номер', item.serial_number)}
-        ${field('Модель', item.model)}
-        ${field('Тип', item.type)}
-        ${field('Дата поверки/калибровки', item.verification_date)}
-        ${field('Действительно до', item.valid_until)}
-        ${field('Документ', item.document_url ? `<a href="${escapeAttr(item.document_url)}" target="_blank" rel="noopener">Открыть</a>` : '—', true)}
-      </div>
-      ${commentHtml}
-      ${extraFields}
-      ${actionsHtml}
-    </article>`;
-document.getElementById('cardScreen').innerHTML =
-  `<article class="panel card">
-    ${photoHtml}
-    <h1>${escapeHtml(item.name || 'Без названия')}</h1>
-    ...
-  bindCardActions(item, goList, isRetiredFlag);
-}
 
 function bindCardActions(item, goList, isRetired) {
   const root = document.getElementById('cardScreen');
@@ -284,21 +259,19 @@ export function showInstrumentForm(item = null) {
       ${input('verification_date', 'Дата поверки/калибровки', v.verification_date, 'date')}
       ${input('valid_until', 'Действительно до', v.valid_until, 'date')}
       ${input('document_url', 'Ссылка на документ', v.document_url, 'url')}
-      <label>Фото прибора
+      ${input('comment', 'Комментарий', v.comment || '', 'text')}
+      <label>Фото прибора (загрузите файл)
         <input type="file" name="photo" accept="image/*">
         ${isEdit && v.photo ? `<div style="margin-top:4px;font-size:12px;color:var(--muted);">Фото загружено (${Math.round(v.photo.length / 1024)} КБ)</div>` : ''}
       </label>
-      ${input('comment', 'Комментарий', v.comment || '', 'text')}
       ${select('condition', 'Состояние', v.condition, [['free', 'Свободен'], ['busy', 'Занят'], ['booked', 'Забронирован'], ['retired', 'Списан']])}
       ${isEdit ? input('taken_extra', 'Доп. данные при выдаче', v.taken_extra || '', 'text') : ''}
       <div class="modal-actions">
         ${isEdit && v.photo ? `<button type="button" class="danger" id="removePhotoBtn">Удалить фото</button>` : ''}
         <button class="primary" type="submit">Сохранить</button>
       </div>
-    </form>`
-  );
+    </form>`);
 
-  // Удаление фото
   const removeBtn = document.getElementById('removePhotoBtn');
   if (removeBtn) {
     removeBtn.onclick = () => {
@@ -317,12 +290,11 @@ export function showInstrumentForm(item = null) {
     const data = Object.fromEntries(formDataObj.entries());
     data.condition = normalizeCondition(data.condition);
 
-    // Обрабатываем загрузку фото
     const fileInput = form.querySelector('input[name="photo"]');
     if (fileInput && fileInput.files && fileInput.files[0]) {
       const file = fileInput.files[0];
-      if (file.size > 2 * 1024 * 1024) {
-        toast('Файл слишком большой (макс. 2 МБ)', true);
+      if (file.size > 5 * 1024 * 1024) {
+        toast('Файл слишком большой (макс. 5 МБ)', true);
         return;
       }
       const reader = new FileReader();
