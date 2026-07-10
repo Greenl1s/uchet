@@ -110,14 +110,12 @@ async function upsertData(table, records, primaryKey) {
       );
 
       if (existing && Array.isArray(existing) && existing.length > 0) {
-        // Обновляем
         console.log(`[Supabase] Обновление ${table} ${primaryKey}=${record[primaryKey]}`);
         await supabaseFetch(`${table}?${primaryKey}=eq.${encodeURIComponent(record[primaryKey])}`, {
           method: 'PATCH',
           body: JSON.stringify(record)
         });
       } else {
-        // Вставляем
         console.log(`[Supabase] Вставка новой записи в ${table}`);
         await supabaseFetch(table, {
           method: 'POST',
@@ -138,9 +136,8 @@ async function replaceTable(table, records) {
     await supabaseFetch(table, { method: 'DELETE' });
     // Вставляем новые, если есть
     if (records.length > 0) {
-      // Для каждого record убираем id (если он есть), чтобы БД сгенерировала новый
-      const recordsToInsert = records.map(({ id, ...rest }) => rest); // убираем id
-      // Отправляем сразу все записи одним запросом POST с массивом
+      // Убираем поле id, чтобы БД генерировала новое
+      const recordsToInsert = records.map(({ id, ...rest }) => rest);
       await supabaseFetch(table, {
         method: 'POST',
         body: JSON.stringify(recordsToInsert)
