@@ -121,6 +121,16 @@ export function renderCard(id, goList) {
   const isRetiredFlag = isRetired || item.condition === 'retired';
   const isFree = !isTaken && !isBooked && !isRetiredFlag;
 
+  // ---------- БЛОК ФОТО (ВЫЧИСЛЯЕМ ЗАРАНЕЕ) ----------
+  let photoHtml = '';
+  if (item.photo) {
+    photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
+      <img src="${escapeAttr(item.photo)}" alt="Фото прибора"
+           style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
+    </div>`;
+  }
+
+  // ---------- КНОПКИ ----------
   let mainButtons = '';
   let adminButtons = '';
   if (isRetiredFlag) {
@@ -159,6 +169,7 @@ export function renderCard(id, goList) {
       adminButtons += '<button class="danger" data-delete>Удалить</button>';
     }
   }
+
   const backButton = '<button class="secondary" data-back>К списку</button>';
   let actionsHtml = '';
   if (mainButtons) {
@@ -170,6 +181,7 @@ export function renderCard(id, goList) {
     actionsHtml += `<div class="actions" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; justify-content:flex-end;">${backButton}</div>`;
   }
 
+  // ---------- ДОП. ПОЛЯ ----------
   let extraFields = '';
   if (isBooked) {
     extraFields = `<div class="issued" style="background:#fee2e2;border-color:#fda29b;">
@@ -186,14 +198,31 @@ export function renderCard(id, goList) {
     commentHtml = `<div class="field"><div class="field-label">Комментарий</div><div class="field-value">${escapeHtml(item.comment)}</div></div>`;
   }
 
-  document.getElementById('cardScreen').innerHTML =
-    `<article class="panel card">
-    let photoHtml = '';
-if (item.photo) {
-  photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
-    <img src="${item.photo}" alt="Фото прибора"
-         style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
-  </div>`;
+  // ---------- СБОРКА ----------
+  document.getElementById('cardScreen').innerHTML = `
+    <article class="panel card">
+      ${photoHtml}
+      <h1>${escapeHtml(item.name || 'Без названия')}</h1>
+      <div class="badges">
+        <span class="badge ${verificationBadge(item.valid_until)}">${verificationText(item.valid_until)}</span>
+        <span class="badge ${conditionBadge(item.condition)}">${conditionText(item.condition)}</span>
+      </div>
+      <div class="card-grid">
+        ${field('ID', item.id)}
+        ${field('Серийный номер', item.serial_number)}
+        ${field('Модель', item.model)}
+        ${field('Тип', item.type)}
+        ${field('Дата поверки/калибровки', item.verification_date)}
+        ${field('Действительно до', item.valid_until)}
+        ${field('Документ', item.document_url ? `<a href="${escapeAttr(item.document_url)}" target="_blank" rel="noopener">Открыть</a>` : '—', true)}
+      </div>
+      ${commentHtml}
+      ${extraFields}
+      ${actionsHtml}
+    </article>
+  `;
+
+  bindCardActions(item, goList, isRetiredFlag);
 }
       <h1>${escapeHtml(item.name || 'Без названия')}</h1>
       <div class="badges">
