@@ -338,18 +338,34 @@ function showTakeForm(item) {
   };
 }
 
-async function returnInstrument(item) {
-  item.condition = 'free';
+export async function retireInstrument(item, goList) {
+  if (!confirm('Списать прибор?')) return;
   closeHistoryEntry(item, state.currentUser.username);
-  item.taken_by = '';
-  item.taken_where = '';
-  item.taken_extra = '';
-  item.taken_date = '';
-  item.booked_by = '';
-  item.booked_date = '';
-  item.booked_extra = '';
-  await saveWorkbook('Прибор возвращен');
-  window.dispatchEvent(new Event('app:refresh-route'));
+  let newId = String(item.id);
+  if (!newId.startsWith('0')) {
+    newId = '0' + newId;
+  }
+  const retiredItem = {
+    id: newId,
+    name: item.name,
+    serial_number: item.serial_number,
+    model: item.model,
+    type: item.type,
+    verification_date: item.verification_date,
+    valid_until: item.valid_until,
+    document_url: item.document_url,
+    condition: 'retired',
+    taken_by: '',
+    taken_where: '',
+    taken_extra: '',
+    taken_date: '',
+    retired_date: today(),
+    photo: item.photo || ''
+  };
+  state.retired.push(retiredItem);
+  state.instruments = state.instruments.filter((row) => row !== item);
+  await saveWorkbook('Прибор списан');
+  if (goList) goList();
 }
 
 function showTransferForm(item) {
