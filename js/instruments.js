@@ -191,7 +191,7 @@ export function renderCard(id, goList) {
     let photoHtml = '';
 if (item.photo) {
   photoHtml = `<div style="text-align: center; margin-bottom: 16px;">
-    <img src="${escapeAttr(item.photo)}" alt="Фото прибора"
+    <img src="${item.photo}" alt="Фото прибора"
          style="max-width: 100%; max-height: 300px; border-radius: var(--radius); object-fit: contain; border: 1px solid var(--line);">
   </div>`;
 }
